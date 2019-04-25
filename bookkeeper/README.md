@@ -9,6 +9,10 @@ This Bookkeeper is a REFERENCE IMPLEMENTATION of reward distribution tool provid
 
 ## Build
 ```
+# install dependencies
+dep ensure
+
+# build the project
 make build
 ```
 
