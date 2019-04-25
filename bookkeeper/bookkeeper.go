@@ -28,7 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/protobuf/proto"
-	. "github.com/logrusorgru/aurora"
+	"github.com/logrusorgru/aurora"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -48,17 +48,14 @@ type Bucket struct {
 	amount *big.Int
 }
 
-// hard code
 const (
-	MultisendABI  = `[{"constant":false,"inputs":[{"name":"recipients","type":"address[]"},{"name":"amounts","type":"uint256[]"},{"name":"payload","type":"string"}],"name":"multiSend","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"anonymous":false,"inputs":[{"indexed":false,"name":"recipient","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"refund","type":"uint256"}],"name":"Refund","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"payload","type":"string"}],"name":"Payload","type":"event"}]`
+	// MultisendABI defines the ABI of multisend contract
+	MultisendABI = `[{"constant":false,"inputs":[{"name":"recipients","type":"address[]"},{"name":"amounts","type":"uint256[]"},{"name":"payload","type":"string"}],"name":"multiSend","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"anonymous":false,"inputs":[{"indexed":false,"name":"recipient","type":"address"},{"indexed":false,"name":"amount","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"refund","type":"uint256"}],"name":"Refund","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"payload","type":"string"}],"name":"Payload","type":"event"}]`
+	// MultisendFunc is the api name to call
 	MultisendFunc = "multiSend"
-	Disclaim      = "This Bookkeeper is a REFERENCE IMPLEMENTATION of reward distribution tool provided by IOTEX FOUNDATION. IOTEX FOUNDATION disclaims all responsibility for any damages or losses (including, without limitation, financial loss, damages for loss in business projects, loss of profits or other consequential losses) arising in contract, tort or otherwise from the use of or inability to use the Bookkeeper, or from any action or decision taken as a result of using this Bookkeeper."
+	// Disclaim defines the disclaim of this software
+	Disclaim = "This Bookkeeper is a REFERENCE IMPLEMENTATION of reward distribution tool provided by IOTEX FOUNDATION. IOTEX FOUNDATION disclaims all responsibility for any damages or losses (including, without limitation, financial loss, damages for loss in business projects, loss of profits or other consequential losses) arising in contract, tort or otherwise from the use of or inability to use the Bookkeeper, or from any action or decision taken as a result of using this Bookkeeper."
 )
-
-// Hard code
-var bpHexMap map[string]string
-var abiJSON string
-var abiFunc string
 
 func init() {
 	// init zap
@@ -73,24 +70,22 @@ func init() {
 }
 
 func main() {
+	fmt.Printf("\n%s\n%s\n", aurora.Bold(aurora.Red("Attention")), aurora.Red(Disclaim))
 	var configPath string
 	var startEpoch uint64
 	var toEpoch uint64
 	var bp string
 	var endpoint string
 	var distPercentage uint64
-	var rewardAddress string
 	var withFoundationBonus bool
 	var byteCodeMode bool
 	var useIOAddr bool
-	fmt.Printf("\n%s\n%s\n", Bold(Red("Attention")), Red(Disclaim))
 	flag.StringVar(&configPath, "config", "committee.yaml", "path of server config file")
 	flag.Uint64Var(&startEpoch, "start", 0, "iotex epoch start")
 	flag.Uint64Var(&toEpoch, "to", 0, "iotex epoch to")
 	flag.StringVar(&bp, "bp", "", "bp name")
 	flag.StringVar(&endpoint, "endpoint", "api.iotex.one:443", "set endpoint")
 	flag.Uint64Var(&distPercentage, "percentage", 100, "distribution percentage of epoch reward")
-	flag.StringVar(&rewardAddress, "reward-address", "", "choose reward address in certain epoch")
 	flag.BoolVar(&withFoundationBonus, "with-foundation-bonus", false, "add foundation bonus in distribution")
 	flag.BoolVar(&byteCodeMode, "bytecodeMode", false, "output in byte code mode")
 	flag.BoolVar(&useIOAddr, "useIOAddr", false, "output io address in csv")
@@ -122,13 +117,19 @@ func main() {
 		log.Fatalf("invalid abi %s\n", MultisendABI)
 	}
 	if distPercentage > 100 {
-		fmt.Println(Brown("\nWarning: percentage " + strconv.Itoa(int(distPercentage)) + `% is larger than 100%`))
+		fmt.Println(aurora.Brown("\nWarning: percentage " + strconv.Itoa(int(distPercentage)) + `% is larger than 100%`))
 	}
 	if toEpoch-startEpoch >= 24 {
-		fmt.Println(Brown("\nWarning: fetch more than 24 epoches' voters may cost much time"))
+		fmt.Println(aurora.Brown("\nWarning: fetch more than 24 epoches' voters may cost much time"))
 	}
-	fmt.Println()
 
+	fmt.Printf(
+		"\nStart calculating distribution for %s (%s) from epoch %d to epoch %d\n",
+		string(delegateName),
+		hex.EncodeToString(delegateName),
+		startEpoch,
+		toEpoch,
+	)
 	distributions := make(map[string]*big.Int)
 	for epochNum := startEpoch; epochNum <= toEpoch; epochNum++ {
 		fmt.Printf("processing epoch %d\n", epochNum)
@@ -166,7 +167,7 @@ func main() {
 		}
 	}
 	if !byteCodeMode {
-		filename := Sprintf("epoch_%d_to_%d.csv", startEpoch, toEpoch)
+		filename := fmt.Sprintf("epoch_%d_to_%d.csv", startEpoch, toEpoch)
 		writeCSV(
 			filename,
 			useIOAddr,
@@ -174,7 +175,7 @@ func main() {
 		)
 		fmt.Printf("byte code has been written to %s\n", filename)
 	} else {
-		filename := Sprintf("epoch_%d_to_%d.txt", startEpoch, toEpoch)
+		filename := fmt.Sprintf("epoch_%d_to_%d.txt", startEpoch, toEpoch)
 		writeByteCode(
 			filename,
 			multisendABI,
