@@ -22,6 +22,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -344,20 +345,30 @@ func writeCSV(filename string, useIOAddr bool, distributions map[string]*big.Int
 	defer file.Close()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
+	type Owner struct {
+		Addr   common.Address
+		Reward *big.Int
+	}
+	var owners []Owner
 	for owner, reward := range distributions {
-		recipient := common.HexToAddress(owner)
+		owners = append(owners, Owner{common.HexToAddress(owner), reward})
+	}
+	sort.Slice(owners, func(i, j int) bool {
+		return owners[i].Reward.Cmp(owners[j].Reward) >= 0
+	})
+	for _, owner := range owners {
+		var addr string
 		if useIOAddr {
-			ioaddr, err := address.FromBytes(recipient.Bytes())
+			ioaddr, err := address.FromBytes(owner.Addr.Bytes())
 			if err != nil {
 				return err
 			}
-			if err := writer.Write([]string{ioaddr.String(), reward.String()}); err != nil {
-				return err
-			}
+			addr = ioaddr.String()
 		} else {
-			if err := writer.Write([]string{recipient.String(), reward.String()}); err != nil {
-				return err
-			}
+			addr = owner.Addr.String()
+		}
+		if err := writer.Write([]string{addr, owner.Reward.String()}); err != nil {
+			return err
 		}
 	}
 	return nil
