@@ -17,7 +17,7 @@ make build
 ```
 
 ## Get Voters' Rewards by Delegate Name
-Usage: `bookkeeper --bp BP_NAME --start START_EPOCH_NUM --to END_EPOCH_NUM --percentage PERCENTAGE [--with-foundation-bonus] [--endpoint IOTEX_ENDPOINT] [--CONFIG CONFIG_FILE]`
+Usage: `bookkeeper --bp BP_NAME --start START_EPOCH_NUM --to END_EPOCH_NUM --percentage PERCENTAGE [--with-foundation-bonus] [--endpoint IOTEX_ENDPOINT] [--config CONFIG_FILE] [--unit Rau|IOTX]`
 
 For example, delegate `iotexlab` wants to distribute 90% of its reward from epoch 24 to epoch 48. If iotexlab only wants to distribute Epoch Reward:
 
@@ -31,4 +31,4 @@ If iotexlab also wants to distribute Foundation Bonus in addition to Epoch Rewar
 ./bookkeeper --bp iotexlab --start 24 --to 48 --percentage 90 --with-foundation-bonus
 ```
 
-The result will be saved to file `epoch_24_to_48.csv`, with the first column as the voter address, and the second column as the reward in Rau the corresponding voter will get.
+The result will be saved to file `epoch_24_to_48_in_Rau.csv`, with the first column as the voter address, and the second column as the reward in Rau the corresponding voter will get.
