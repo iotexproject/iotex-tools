@@ -81,6 +81,7 @@ func main() {
 	var withFoundationBonus bool
 	var byteCodeMode bool
 	var useIOAddr bool
+	var unit string
 	flag.StringVar(&configPath, "config", "committee.yaml", "path of server config file")
 	flag.Uint64Var(&startEpoch, "start", 0, "iotex epoch start")
 	flag.Uint64Var(&toEpoch, "to", 0, "iotex epoch to")
@@ -90,6 +91,7 @@ func main() {
 	flag.BoolVar(&withFoundationBonus, "with-foundation-bonus", false, "add foundation bonus in distribution")
 	flag.BoolVar(&byteCodeMode, "bytecodeMode", false, "output in byte code mode")
 	flag.BoolVar(&useIOAddr, "useIOAddr", false, "output io address in csv")
+	flag.StringVar(&unit, "unit", "Rau", "output amount unit, legal options: Rau and IOTX")
 	flag.Parse()
 
 	data, err := ioutil.ReadFile(configPath)
@@ -117,6 +119,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid abi %s\n", MultisendABI)
 	}
+	switch strings.ToLower(unit) {
+	case "rau":
+		unit = "Rau"
+	case "iotx":
+		unit = "IOTX"
+	default:
+		log.Fatalf("The output amount unit %s is not supported", unit)
+	}
+
 	if distPercentage > 100 {
 		fmt.Println(aurora.Brown("\nWarning: percentage " + strconv.Itoa(int(distPercentage)) + `% is larger than 100%`))
 	}
@@ -168,13 +179,15 @@ func main() {
 		}
 	}
 	if !byteCodeMode {
-		filename := fmt.Sprintf("epoch_%d_to_%d.csv", startEpoch, toEpoch)
+		fmt.Printf("The output amount unit is in %s.\n", unit)
+		filename := fmt.Sprintf("epoch_%d_to_%d_in_%s.csv", startEpoch, toEpoch, unit)
 		writeCSV(
 			filename,
 			useIOAddr,
 			distributions,
+			unit,
 		)
-		fmt.Printf("byte code has been written to %s\n", filename)
+		fmt.Printf("csv format data has been written to %s\n", filename)
 	} else {
 		filename := fmt.Sprintf("epoch_%d_to_%d.txt", startEpoch, toEpoch)
 		writeByteCode(
@@ -183,7 +196,7 @@ func main() {
 			distributions,
 			fmt.Sprintf("reward from delegate %s for epoch %d to %d", string(delegateName), startEpoch, toEpoch),
 		)
-		fmt.Printf("csv format data has been written to %s\n", filename)
+		fmt.Printf("byte code has been written to %s\n", filename)
 	}
 }
 
@@ -337,7 +350,10 @@ func writeByteCode(filename string, abi abi.ABI, distributions map[string]*big.I
 	return ioutil.WriteFile(filename, bytes, 066)
 }
 
-func writeCSV(filename string, useIOAddr bool, distributions map[string]*big.Int) error {
+// OneIOTX is the amount of one IOTX in Rau
+var OneIOTX = new(big.Float).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+
+func writeCSV(filename string, useIOAddr bool, distributions map[string]*big.Int, unit string) error {
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -347,11 +363,20 @@ func writeCSV(filename string, useIOAddr bool, distributions map[string]*big.Int
 	defer writer.Flush()
 	type Owner struct {
 		Addr   common.Address
-		Reward *big.Int
+		Reward *big.Float
 	}
 	var owners []Owner
 	for owner, reward := range distributions {
-		owners = append(owners, Owner{common.HexToAddress(owner), reward})
+		rewardInFloat := new(big.Float).SetInt(reward)
+		switch unit {
+		case "Rau":
+			// do nothing
+		case "IOTX":
+			rewardInFloat = new(big.Float).Quo(rewardInFloat, OneIOTX)
+		default:
+			return errors.Errorf("unit %s is not supported unit", unit)
+		}
+		owners = append(owners, Owner{common.HexToAddress(owner), rewardInFloat})
 	}
 	sort.Slice(owners, func(i, j int) bool {
 		return owners[i].Reward.Cmp(owners[j].Reward) >= 0
