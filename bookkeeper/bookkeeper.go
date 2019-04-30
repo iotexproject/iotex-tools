@@ -35,12 +35,12 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"gopkg.in/yaml.v2"
 
 	"github.com/iotexproject/iotex-address/address"
 	"github.com/iotexproject/iotex-core/action/protocol/rewarding/rewardingpb"
 	"github.com/iotexproject/iotex-core/protogen/iotexapi"
 	"github.com/iotexproject/iotex-election/committee"
+	"github.com/iotexproject/iotex-tools/util"
 )
 
 // Bucket of votes
@@ -94,13 +94,9 @@ func main() {
 	flag.StringVar(&unit, "unit", "Rau", "output amount unit, legal options: Rau and IOTX")
 	flag.Parse()
 
-	data, err := ioutil.ReadFile(configPath)
+	committee, err := util.NewCommitteeWithConfigFile(configPath)
 	if err != nil {
-		log.Fatalln("failed to load config file")
-	}
-	var config committee.Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		log.Fatalln("failed to unmarshal config")
+		log.Fatalf("failed to create committee %+v", err)
 	}
 	if len(bp) == 0 {
 		log.Fatalln("please set bp name by '--bp'")
@@ -150,7 +146,7 @@ func main() {
 			log.Fatalf("Failed to get gravity chain height for epoch %d\n%+v", epochNum, err)
 		}
 		fmt.Printf("\tgravity chain height %d\n", gravityChainHeight)
-		rewardAddress, totalVotes, buckets, err := readEthereum(gravityChainHeight, delegateName, config)
+		rewardAddress, totalVotes, buckets, err := readEthereum(gravityChainHeight, delegateName, committee)
 		if err != nil {
 			log.Fatalf("Failed to fetch data from ethereum for epoch %d\n%+v", epochNum, err)
 		}
@@ -294,13 +290,9 @@ func gravityChainHeight(endpoint string, epochNum uint64) (uint64, error) {
 func readEthereum(
 	height uint64,
 	delegateName []byte,
-	config committee.Config,
+	committee committee.Committee,
 ) (rewardAddress string, totalVotes *big.Int, buckets []Bucket, err error) {
 	totalVotes = big.NewInt(0)
-	committee, err := committee.NewCommittee(nil, config)
-	if err != nil {
-		return
-	}
 	result, err := committee.FetchResultByHeight(height)
 	if err != nil {
 		return
