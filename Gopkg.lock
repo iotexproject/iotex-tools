@@ -117,16 +117,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1f56106b4630c30bb7e8614d90aed83b57682644ac77c1122d6de1f4bb553bb7"
+  digest = "1:8bd983d2c19a7d963a45bce7c3934f9ce7d02ace961dadd8422c85928b8adf2c"
   name = "github.com/iotexproject/iotex-core"
   packages = [
     "action/protocol/rewarding/rewardingpb",
-    "cli/ioctl/cmd/config",
-    "cli/ioctl/util",
-    "cli/ioctl/validator",
     "pkg/hash",
     "pkg/log",
-    "pkg/unit",
     "protogen/iotexapi",
     "protogen/iotextypes",
   ]
@@ -423,10 +419,11 @@
     "github.com/golang/protobuf/proto",
     "github.com/iotexproject/iotex-address/address",
     "github.com/iotexproject/iotex-core/action/protocol/rewarding/rewardingpb",
-    "github.com/iotexproject/iotex-core/cli/ioctl/util",
     "github.com/iotexproject/iotex-core/protogen/iotexapi",
     "github.com/iotexproject/iotex-election/committee",
     "github.com/logrusorgru/aurora",
+    "github.com/pkg/errors",
+    "github.com/spf13/cobra",
     "go.uber.org/zap",
     "go.uber.org/zap/zapcore",
     "google.golang.org/grpc",
