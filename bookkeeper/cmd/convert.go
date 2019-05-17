@@ -275,10 +275,10 @@ var ConvertCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
-		total, bytecode, err := convertToBytecode(args[0], inputUnit)
+		total, bytecode, err := convertToBytecode(args[0], inputUnit, msg)
 		if err == nil {
 			totalInFloat := new(big.Float).SetInt(total)
-			fmt.Printf("Total Amount: %f IOTX or %d Rau\n", totalInFloat.Quo(totalInFloat, OneIOTX), total)
+			fmt.Printf("Total Amount: %.18f IOTX or %d Rau\n", totalInFloat.Quo(totalInFloat, OneIOTX), total)
 			fmt.Printf("Byte Code: %s\n", hex.EncodeToString(bytecode))
 		}
 		return err
@@ -289,13 +289,15 @@ var (
 	outputFile string
 	inputUnit  string
 	format     string
+	msg        string
 )
 
 func init() {
 	ConvertCmd.Flags().StringVar(&inputUnit, "input-unit", "Rau", "output file")
+	ConvertCmd.Flags().StringVar(&msg, "msg", "", "message to append")
 }
 
-func convertToBytecode(csvFile string, unit string) (totalAmount *big.Int, bytecode []byte, err error) {
+func convertToBytecode(csvFile string, unit string, message string) (totalAmount *big.Int, bytecode []byte, err error) {
 	switch strings.ToLower(unit) {
 	case "rau":
 		unit = "Rau"
@@ -329,6 +331,10 @@ func convertToBytecode(csvFile string, unit string) (totalAmount *big.Int, bytec
 			err = errors.Errorf("failed to parse record %s", record[1])
 			return
 		}
+		if amount.Sign() != 1 {
+			err = errors.Errorf("amount %f is not a positive value", amount)
+			return
+		}
 		if unit == "IOTX" {
 			amount = amount.Mul(amount, OneIOTX)
 		}
@@ -344,6 +350,6 @@ func convertToBytecode(csvFile string, unit string) (totalAmount *big.Int, bytec
 	if err != nil {
 		log.Fatalf("invalid abi %s\n", MultisendABI)
 	}
-	bytecode, err = multisendABI.Pack(sendCoin, addrs, amounts, "")
+	bytecode, err = multisendABI.Pack(sendCoin, addrs, amounts, message)
 	return
 }
