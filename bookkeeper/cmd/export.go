@@ -151,6 +151,7 @@ func export(configPath string, bp string, startEpoch uint64, toEpoch uint64, end
 	}
 	fmt.Printf("The output amount unit is in %s.\n", unit)
 	filename := fmt.Sprintf("%s_epoch_%d_to_%d_in_%s.csv", delegateName, startEpoch, toEpoch, unit)
+	filename = strings.Replace(strings.Trim(filename, "\x00"), "\x00", "#", -1)
 	writeCSV(
 		filename,
 		useIOAddr,
